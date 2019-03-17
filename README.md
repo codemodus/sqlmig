@@ -5,11 +5,9 @@
 ## Usage
 
 ```go
-type MigrationGetter
-type Migrator
+type QueryingMigrator
 type Regularizer
 type Result
-    func (r *Result) Directory() string
     func (r *Result) Err() error
     func (r *Result) String() string
     func (r *Result) Total() int
@@ -21,25 +19,18 @@ type Results
     func (rs Results) Total() int
 type SQLMig
     func New(db *sql.DB, driver string) (*SQLMig, error)
-    func (m *SQLMig) AddMigrations(srcs ...MigrationGetter)
-    func (m *SQLMig) AddRegularizations(regs ...Regularizer)
+    func (m *SQLMig) AddQueryingMigs(qms ...QueryingMigrator)
+    func (m *SQLMig) AddRegularizers(rs ...Regularizer)
     func (m *SQLMig) Migrate() Results
     func (m *SQLMig) Regularize(ctx context.Context) error
     func (m *SQLMig) RollBack() Results
-    func (m *SQLMig) RunMigrations(src MigrationGetter, up bool) *Result
 ```
 
 ```go
-type MigrationGetter interface {
+type QueryingMigrator interface {
     MigrationName() string
-    MigrationAssetDirectory() string
-    MigrationAssetNames(dir string) (filenames []string, err error)
-    MigrationAsset(filename string) (data []byte, err error)
-}
-
-type Migrator interface {
-    MigrationGetter
-    Regularizer
+    MigrationIDs(_ string) ([]string, error)
+    MigrationData(id string) ([]byte, error)
 }
 
 type Regularizer interface {

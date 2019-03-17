@@ -9,18 +9,11 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 )
 
-// Migrator ...
-type Migrator interface {
-	MigrationGetter
-	Regularizer
-}
-
-// MigrationGetter ...
-type MigrationGetter interface {
+// QueryingMigrator ...
+type QueryingMigrator interface {
 	MigrationName() string
-	MigrationAssetDirectory() string
-	MigrationAssetNames(dir string) (filenames []string, err error)
-	MigrationAsset(filename string) (data []byte, err error)
+	MigrationIDs(_ string) ([]string, error)
+	MigrationData(id string) ([]byte, error)
 }
 
 // Regularizer ...
@@ -31,53 +24,51 @@ type Regularizer interface {
 // SQLMig ...
 type SQLMig struct {
 	*sql.DB
-	drvr string
-	mu   sync.Mutex
-	srcs []MigrationGetter
-	regs []Regularizer
+	drv string
+	mu  sync.Mutex
+	qms []QueryingMigrator
+	rs  []Regularizer
 }
 
 // New ...
 func New(db *sql.DB, driver string) (*SQLMig, error) {
 	m := SQLMig{
-		DB:   db,
-		drvr: driver,
+		DB:  db,
+		drv: driver,
 	}
 
 	return &m, nil
 }
 
-// AddMigrations ...
-func (m *SQLMig) AddMigrations(srcs ...MigrationGetter) {
-	if srcs == nil || len(srcs) == 0 {
+// AddQueryingMigs ...
+func (m *SQLMig) AddQueryingMigs(qms ...QueryingMigrator) {
+	if qms == nil || len(qms) == 0 {
 		return
 	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.srcs = append(m.srcs, srcs...)
+	m.qms = append(m.qms, qms...)
 }
 
-// RunMigrations ...
-func (m *SQLMig) RunMigrations(src MigrationGetter, up bool) *Result {
+func (m *SQLMig) runQueryingMig(qm QueryingMigrator, up bool) *Result {
 	dir := migrate.Up
 	if !up {
 		dir = migrate.Down
 	}
 
 	msrc := migrate.AssetMigrationSource{
-		Asset:    src.MigrationAsset,
-		AssetDir: src.MigrationAssetNames,
-		Dir:      src.MigrationAssetDirectory(),
+		Asset:    qm.MigrationData,
+		AssetDir: qm.MigrationIDs,
+		Dir:      "",
 	}
 
-	ct, err := migrate.Exec(m.DB, m.drvr, &msrc, dir)
+	ct, err := migrate.Exec(m.DB, m.drv, &msrc, dir)
 
 	return &Result{
-		name: src.MigrationName(),
+		name: qm.MigrationName(),
 		ct:   ct,
-		dir:  src.MigrationAssetDirectory(),
 		err:  err,
 	}
 }
@@ -88,8 +79,8 @@ func (m *SQLMig) migrate(up bool) Results {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	for _, src := range m.srcs {
-		r := m.RunMigrations(src, up)
+	for _, qm := range m.qms {
+		r := m.runQueryingMig(qm, up)
 		rs = append(rs, r)
 	}
 
@@ -106,22 +97,22 @@ func (m *SQLMig) RollBack() Results {
 	return m.migrate(false)
 }
 
-// AddRegularizations ...
-func (m *SQLMig) AddRegularizations(regs ...Regularizer) {
-	if regs == nil || len(regs) == 0 {
+// AddRegularizers ...
+func (m *SQLMig) AddRegularizers(rs ...Regularizer) {
+	if rs == nil || len(rs) == 0 {
 		return
 	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.regs = append(m.regs, regs...)
+	m.rs = append(m.rs, rs...)
 }
 
 // Regularize ...
 func (m *SQLMig) Regularize(ctx context.Context) error {
-	for _, reg := range m.regs {
-		if err := reg.Regularize(ctx); err != nil {
+	for _, r := range m.rs {
+		if err := r.Regularize(ctx); err != nil {
 			return err
 		}
 	}
@@ -132,18 +123,12 @@ func (m *SQLMig) Regularize(ctx context.Context) error {
 type Result struct {
 	name string
 	ct   int
-	dir  string
 	err  error
 }
 
 // Total ...
 func (r *Result) Total() int {
 	return r.ct
-}
-
-// Directory ...
-func (r *Result) Directory() string {
-	return r.dir
 }
 
 func (r *Result) String() string {
