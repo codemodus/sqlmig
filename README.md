@@ -5,7 +5,7 @@
 ## Usage
 
 ```go
-type QueryingMigrator
+type DataProvider
 type Regularizer
 type Result
     func (r *Result) Err() error
@@ -18,8 +18,8 @@ type Results
     func (rs Results) String() string
     func (rs Results) Total() int
 type SQLMig
-    func New(db *sql.DB, driver string) (*SQLMig, error)
-    func (m *SQLMig) AddQueryingMigs(qms ...QueryingMigrator)
+    func New(db *sql.DB, driver, tablePrefix string) (*SQLMig, error)
+    func (m *SQLMig) AddDataProviders(ps ...DataProvider)
     func (m *SQLMig) AddRegularizers(rs ...Regularizer)
     func (m *SQLMig) Migrate() Results
     func (m *SQLMig) Regularize(ctx context.Context) error
@@ -27,10 +27,8 @@ type SQLMig
 ```
 
 ```go
-type QueryingMigrator interface {
-    MigrationName() string
-    MigrationIDs(_ string) ([]string, error)
-    MigrationData(id string) ([]byte, error)
+type DataProvider interface {
+    MigrationData() (name string, data map[string][]byte)
 }
 
 type Regularizer interface {
