@@ -4,7 +4,6 @@ go 1.12
 
 require (
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
-	github.com/gobuffalo/packd v0.0.0-20190315124812-a385830c7fc0 // indirect
 	github.com/gobuffalo/packr v1.24.0 // indirect
 	github.com/lib/pq v1.0.0 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect

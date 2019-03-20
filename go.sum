@@ -9,9 +9,8 @@ github.com/gobuffalo/genny v0.0.0-20190315121735-8b38fb089e88/go.mod h1:rWs4Z12d
 github.com/gobuffalo/gogen v0.0.0-20190315121717-8f38393713f5/go.mod h1:V9QVDIxsgKNZs6L2IYiGR8datgMhB577vzTDqypH360=
 github.com/gobuffalo/logger v0.0.0-20190315122211-86e12af44bc2/go.mod h1:QdxcLw541hSGtBnhUc4gaNIXRjiDppFGaDqzbrBd3v8=
 github.com/gobuffalo/mapi v1.0.1/go.mod h1:4VAGh89y6rVOvm5A8fKFxYG+wIW6LO1FMTG9hnKStFc=
+github.com/gobuffalo/packd v0.0.0-20190315122247-83d601d65093 h1:ESaUc+p2J31vealRlSsQpvrt/WuqzLx0cS2akYj/kQE=
 github.com/gobuffalo/packd v0.0.0-20190315122247-83d601d65093/go.mod h1:LpEu7OkoplvlhztyAEePkS6JwcGgANdgGL5pB4Knxaw=
-github.com/gobuffalo/packd v0.0.0-20190315124812-a385830c7fc0 h1:P6naWPiHm/7R3eYx/ub3VhaW9G+1xAMJ6vzACePaGPI=
-github.com/gobuffalo/packd v0.0.0-20190315124812-a385830c7fc0/go.mod h1:M2Juc+hhDXf/PnmBANFCqx4DM3wRbgDvnVWeG2RIxq4=
 github.com/gobuffalo/packr v1.24.0 h1:pnDU7VZ1gPbkIEDiXzWPtUZr/RgWSpq9x7PE7uQB8zo=
 github.com/gobuffalo/packr v1.24.0/go.mod h1:p9Sgang00I1hlr1ub+tgI9AQdFd4f+WH1h62jYpzetM=
 github.com/gobuffalo/packr/v2 v2.0.6/go.mod h1:/TYKOjadT7P9jRWZtj4BRTgeXy2tIYntifGkD+aM2KY=
