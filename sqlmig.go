@@ -9,11 +9,9 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 )
 
-// QueryingMigrator ...
-type QueryingMigrator interface {
-	MigrationName() string
-	MigrationIDs(_ string) ([]string, error)
-	MigrationData(id string) ([]byte, error)
+// DataProvider ...
+type DataProvider interface {
+	MigrationData() (name string, data map[string][]byte)
 }
 
 // Regularizer ...
@@ -25,49 +23,49 @@ type Regularizer interface {
 type SQLMig struct {
 	*sql.DB
 	drv string
+	tp  string
 	mu  sync.Mutex
-	qms []QueryingMigrator
+	ps  []DataProvider
 	rs  []Regularizer
 }
 
 // New ...
-func New(db *sql.DB, driver string) (*SQLMig, error) {
+func New(db *sql.DB, driver, tablePrefix string) (*SQLMig, error) {
 	m := SQLMig{
 		DB:  db,
 		drv: driver,
+		tp:  tablePrefix,
 	}
 
 	return &m, nil
 }
 
-// AddQueryingMigs ...
-func (m *SQLMig) AddQueryingMigs(qms ...QueryingMigrator) {
-	if qms == nil || len(qms) == 0 {
+// AddDataProviders ...
+func (m *SQLMig) AddDataProviders(ps ...DataProvider) {
+	if ps == nil || len(ps) == 0 {
 		return
 	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.qms = append(m.qms, qms...)
+	m.ps = append(m.ps, ps...)
 }
 
-func (m *SQLMig) runQueryingMig(qm QueryingMigrator, up bool) *Result {
+func (m *SQLMig) runMigration(p DataProvider, up bool) *Result {
 	dir := migrate.Up
 	if !up {
 		dir = migrate.Down
 	}
 
-	msrc := migrate.AssetMigrationSource{
-		Asset:    qm.MigrationData,
-		AssetDir: qm.MigrationIDs,
-		Dir:      "",
-	}
+	name, data := p.MigrationData()
 
-	ct, err := migrate.Exec(m.DB, m.drv, &msrc, dir)
+	msrc := newAssetMigrationSource(data)
+	migrate.SetTable(m.tp + "_" + name)
+	ct, err := migrate.Exec(m.DB, m.drv, msrc, dir)
 
 	return &Result{
-		name: qm.MigrationName(),
+		name: name,
 		ct:   ct,
 		err:  err,
 	}
@@ -79,8 +77,8 @@ func (m *SQLMig) migrate(up bool) Results {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	for _, qm := range m.qms {
-		r := m.runQueryingMig(qm, up)
+	for _, p := range m.ps {
+		r := m.runMigration(p, up)
 		rs = append(rs, r)
 	}
 
@@ -202,4 +200,33 @@ func (rs Results) ErrsErr() error {
 	}
 
 	return fmt.Errorf(e)
+}
+
+func newAssetMigrationSource(m map[string][]byte) *migrate.AssetMigrationSource {
+	if m == nil || len(m) == 0 {
+		return &migrate.AssetMigrationSource{}
+	}
+
+	assetDirFn := func(_ string) ([]string, error) {
+		var ss []string
+		for s := range m {
+			ss = append(ss, s)
+		}
+
+		return ss, nil
+	}
+
+	assetFn := func(key string) ([]byte, error) {
+		if d, ok := m[key]; ok {
+			return d, nil
+		}
+
+		return nil, fmt.Errorf("cannot find data %q", key)
+	}
+
+	return &migrate.AssetMigrationSource{
+		Asset:    assetFn,
+		AssetDir: assetDirFn,
+		Dir:      "",
+	}
 }
