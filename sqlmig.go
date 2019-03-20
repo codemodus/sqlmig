@@ -132,7 +132,11 @@ func (r *Result) Total() int {
 }
 
 func (r *Result) String() string {
-	return fmt.Sprintf("%s (%d)", r.name, r.ct)
+	name := r.name
+	if name == "" {
+		name = "-unnamed-"
+	}
+	return fmt.Sprintf("%s (%d)", name, r.ct)
 }
 
 // Err ...
@@ -153,18 +157,14 @@ func (rs Results) Total() int {
 }
 
 func (rs Results) String() string {
-	var names, sep string
+	var s, sep string
 
 	for _, r := range rs {
-		if r.name == "" {
-			continue
-		}
-
-		names += sep + r.name
+		s += sep + r.String()
 		sep = ", "
 	}
 
-	return fmt.Sprintf("%s (%d)", names, rs.Total())
+	return fmt.Sprintf("%s - total: %d", s, rs.Total())
 }
 
 // HasError ...
