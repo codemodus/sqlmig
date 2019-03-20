@@ -162,7 +162,12 @@ func (rs Results) String() string {
 		sep = ", "
 	}
 
-	return fmt.Sprintf("%s - total: %d", s, rs.Total())
+	div := " - "
+	if len(s) == 0 {
+		div = ""
+	}
+
+	return fmt.Sprintf("%s%stotal: %d", s, div, rs.Total())
 }
 
 // HasError ...
